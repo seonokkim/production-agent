@@ -1,0 +1,15 @@
+{
+  "project": {
+    "name": "Project Aurora",
+    "description": "Fictional drama previsualization sandbox for Production Agent demo."
+  },
+  "scene": {
+    "title": "Abandoned Factory",
+    "episode_no": 2,
+    "scene_no": 18,
+    "brief": "Late at night, a detective enters an abandoned factory.\n\nRain and neon light enter through broken windows,\nand the camera slowly follows behind the detective.\n\nThe overall mood is tense and cold."
+  },
+  "characters": ["Detective Alex", "Mina"],
+  "locations": ["Abandoned factory", "Subway platform"],
+  "notes": "Synthetic / fictional only. No real titles, actors, or proprietary assets."
+}
