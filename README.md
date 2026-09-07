@@ -117,15 +117,7 @@ comfy/       Versioned workflow JSON + node maps
 storage/     Generated assets
 data/demo/   Project Aurora fixture
 scripts/     seed_demo.py, verify_demo.py
-docs/        Plan + architecture notes
 ```
-
-## Docs
-
-- [Final plan](docs/20260907_2309_production_agent_final_plan.md) — see **§34 Next steps — install & run verification** (Docker, PostgreSQL, A100/ComfyUI checks)
-- [Architecture](docs/architecture.md)
-- [Demo script](docs/demo-script.md)
-- [ComfyUI integration](docs/comfyui-integration.md)
 
 ## Non-goals (P0)
 
