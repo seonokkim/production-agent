@@ -26,3 +26,6 @@ class Scene(Base):
     generation_jobs = relationship(
         "GenerationJob", back_populates="scene", cascade="all, delete-orphan"
     )
+    retrieval_events = relationship(
+        "RetrievalEvent", back_populates="scene", cascade="all, delete-orphan"
+    )

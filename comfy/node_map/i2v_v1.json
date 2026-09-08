@@ -1,7 +1,9 @@
 {
-  "prompt": {"node_id": "2", "input": "text"},
-  "negative_prompt": {"node_id": "3", "input": "text"},
-  "seed": {"node_id": "4", "input": "seed"},
-  "width": {"node_id": "4", "input": "width"},
-  "height": {"node_id": "4", "input": "height"}
+  "prompt": {"node_id": "6", "input": "text"},
+  "negative_prompt": {"node_id": "7", "input": "text"},
+  "seed": {"node_id": "3", "input": "seed"},
+  "width": {"node_id": "55", "input": "width"},
+  "height": {"node_id": "55", "input": "height"},
+  "frame_count": {"node_id": "55", "input": "length"},
+  "reference_image": {"node_id": "56", "input": "image"}
 }

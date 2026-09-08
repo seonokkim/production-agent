@@ -110,6 +110,8 @@ def job_to_read(job: GenerationJob) -> GenerationRead:
         fps=job.fps,
         duration_seconds=job.duration_seconds,
         reference_asset_id=job.reference_asset_id,
+        retrieval_event_id=job.retrieval_event_id,
+        reference_asset_embedding_id=job.reference_asset_embedding_id,
         workflow_snapshot_json=job.workflow_snapshot_json,
         configuration_json=job.configuration_json,
         error_code=job.error_code,
@@ -140,7 +142,10 @@ class GenerationService:
         node_map = load_node_map(workflow.name)
 
         if payload.generation_type == "image_to_video" and not payload.reference_asset_id:
-            raise ValueError("image_to_video requires reference_asset_id")
+            if not payload.reference_asset_embedding_id:
+                raise ValueError(
+                    "image_to_video requires reference_asset_id or reference_asset_embedding_id"
+                )
 
         prompt = shot.visual_prompt if payload.generation_type == "keyframe" else shot.motion_prompt
         negative = "blurry, low quality, watermark, text overlay, deformed"
@@ -154,9 +159,31 @@ class GenerationService:
             "shot_spec_version": shot.version,
             "subjects": _subjects_from_json(shot.subjects_json),
             "location": shot.location,
+            "lighting": shot.lighting,
+            "mood": shot.mood,
+            "camera_motion": shot.camera_motion,
             "force_fail": payload.force_fail,
             "node_map": node_map,
+            "retrieval_event_id": payload.retrieval_event_id,
+            "reference_asset_embedding_id": payload.reference_asset_embedding_id,
         }
+
+        # Optional approved-reference segment selection (P1).
+        ref_asset_id = payload.reference_asset_id
+        if payload.reference_asset_embedding_id and not ref_asset_id:
+            from app.models import AssetEmbedding
+
+            emb = db.get(AssetEmbedding, payload.reference_asset_embedding_id)
+            if emb:
+                ref_asset_id = emb.asset_id
+
+        if payload.generation_type == "image_to_video" and not ref_asset_id:
+            raise ValueError("image_to_video requires a resolvable reference asset")
+
+        # SDXL keyframe uses 1280x720; Wan TI2V latent prefers height multiple of 32 (704).
+        width, height = 1280, 720
+        if payload.generation_type == "image_to_video":
+            height = 704
 
         job = GenerationJob(
             scene_id=scene_id,
@@ -170,12 +197,14 @@ class GenerationService:
             model_name=workflow.model_name,
             model_version=workflow.model_version,
             seed=seed,
-            width=1280,
-            height=720,
+            width=width,
+            height=height,
             frame_count=int((duration or 0) * 24) if duration else None,
             fps=24 if duration else None,
             duration_seconds=duration,
-            reference_asset_id=payload.reference_asset_id,
+            reference_asset_id=ref_asset_id,
+            retrieval_event_id=payload.retrieval_event_id,
+            reference_asset_embedding_id=payload.reference_asset_embedding_id,
             workflow_snapshot_json=json.dumps(snapshot),
             configuration_json=json.dumps(configuration),
             queued_at=_utcnow(),
@@ -185,8 +214,8 @@ class GenerationService:
         db.refresh(job)
 
         ref_path = None
-        if payload.reference_asset_id:
-            ref = db.get(Asset, payload.reference_asset_id)
+        if ref_asset_id:
+            ref = db.get(Asset, ref_asset_id)
             if ref:
                 ref_path = ref.file_path
 
@@ -197,8 +226,8 @@ class GenerationService:
                     prompt=prompt,
                     negative_prompt=negative,
                     seed=seed,
-                    width=1280,
-                    height=720,
+                    width=width,
+                    height=height,
                     duration_seconds=duration,
                     reference_file_path=ref_path,
                     workflow_snapshot=snapshot,
@@ -255,6 +284,8 @@ class GenerationService:
             generation_type=source.generation_type,
             shot_spec_id=source.shot_spec_id,
             reference_asset_id=source.reference_asset_id,
+            reference_asset_embedding_id=source.reference_asset_embedding_id,
+            retrieval_event_id=source.retrieval_event_id,
             seed=source.seed,
             duration_seconds=source.duration_seconds,
             force_fail=bool(config.get("force_fail", False)),

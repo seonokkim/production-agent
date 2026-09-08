@@ -1,49 +1,99 @@
 {
-  "1": {
+  "37": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_ti2v_5B_fp16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "38": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "39": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan2.2_vae.safetensors"
+    }
+  },
+  "48": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": ["37", 0],
+      "shift": 8.0
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "MOTION_PROMPT_PLACEHOLDER",
+      "clip": ["38", 0]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "NEGATIVE_PLACEHOLDER",
+      "clip": ["38", 0]
+    }
+  },
+  "56": {
     "class_type": "LoadImage",
     "inputs": {
       "image": "reference_keyframe.png"
     }
   },
-  "2": {
-    "class_type": "CLIPTextEncode",
+  "55": {
+    "class_type": "Wan22ImageToVideoLatent",
     "inputs": {
-      "text": "MOTION_PROMPT_PLACEHOLDER",
-      "clip": ["5", 1]
+      "vae": ["39", 0],
+      "start_image": ["56", 0],
+      "width": 1280,
+      "height": 704,
+      "length": 81,
+      "batch_size": 1
     }
   },
   "3": {
-    "class_type": "CLIPTextEncode",
-    "inputs": {
-      "text": "NEGATIVE_PLACEHOLDER",
-      "clip": ["5", 1]
-    }
-  },
-  "4": {
-    "class_type": "WanImageToVideoPlaceholder",
+    "class_type": "KSampler",
     "inputs": {
       "seed": 0,
-      "width": 1280,
-      "height": 720,
-      "length": 96,
-      "fps": 24,
-      "image": ["1", 0],
-      "positive": ["2", 0],
-      "negative": ["3", 0],
-      "model": ["5", 0]
+      "steps": 20,
+      "cfg": 5.0,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["48", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["55", 0]
     }
   },
-  "5": {
-    "class_type": "CheckpointLoaderSimple",
+  "8": {
+    "class_type": "VAEDecode",
     "inputs": {
-      "ckpt_name": "wan2.2_i2v_5b_placeholder.safetensors"
+      "samples": ["3", 0],
+      "vae": ["39", 0]
     }
   },
-  "6": {
-    "class_type": "SaveVideoPlaceholder",
+  "57": {
+    "class_type": "CreateVideo",
     "inputs": {
+      "images": ["8", 0],
+      "fps": 24.0
+    }
+  },
+  "58": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["57", 0],
       "filename_prefix": "production_agent_i2v",
-      "video": ["4", 0]
+      "format": "auto",
+      "codec": "auto"
     }
   }
 }

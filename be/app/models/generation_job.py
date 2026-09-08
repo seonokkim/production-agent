@@ -32,8 +32,10 @@ class GenerationJob(Base):
     frame_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     fps: Mapped[int | None] = mapped_column(Integer, nullable=True)
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
-    # Soft reference only — avoids circular FK with assets.generation_job_id
+    # Soft references — avoid circular FKs with assets / retrieval tables
     reference_asset_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    retrieval_event_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    reference_asset_embedding_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     workflow_snapshot_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
     configuration_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
     error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)

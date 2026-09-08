@@ -37,8 +37,6 @@ database.engine = create_engine(
 database.SessionLocal = sessionmaker(
     bind=database.engine, autoflush=False, autocommit=False, future=True
 )
-engine = database.engine
-SessionLocal = database.SessionLocal
 Base = database.Base
 
 from app.main import create_app  # noqa: E402
@@ -53,9 +51,9 @@ app = create_app()
 
 
 def setup_module() -> None:
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    Base.metadata.drop_all(bind=database.engine)
+    Base.metadata.create_all(bind=database.engine)
+    db = database.SessionLocal()
     try:
         ensure_default_workflows(db)
         project = Project(name="Project Aurora", description="test")

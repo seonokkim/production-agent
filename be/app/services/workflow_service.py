@@ -16,16 +16,16 @@ DEFAULT_WORKFLOWS = [
         "name": "keyframe_v1",
         "workflow_type": "keyframe",
         "version": "v1",
-        "model_name": "sdxl-keyframe-placeholder",
-        "model_version": "v1",
+        "model_name": "sd_xl_base_1.0",
+        "model_version": "1.0",
         "file": "keyframe_v1.json",
     },
     {
         "name": "i2v_v1",
         "workflow_type": "image_to_video",
         "version": "v1",
-        "model_name": "wan2.2-i2v-5b-placeholder",
-        "model_version": "v1",
+        "model_name": "Wan2.2-TI2V-5B",
+        "model_version": "fp16",
         "file": "i2v_v1.json",
     },
 ]
@@ -47,6 +47,8 @@ def ensure_default_workflows(db: Session) -> None:
         if existing:
             existing.workflow_path = str(path)
             existing.workflow_hash = whash
+            existing.model_name = item["model_name"]
+            existing.model_version = item["model_version"]
             existing.active = True
             continue
         db.add(

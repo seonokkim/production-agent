@@ -1,0 +1,177 @@
+{
+  "clips": [
+    {
+      "id": "clip_01",
+      "title": "Abandoned factory rear track",
+      "description": "Slow rear tracking shot in a dark industrial interior with blue-red neon lighting rain night detective factory",
+      "camera_motion": "slow rear tracking",
+      "lighting": "blue-red neon",
+      "mood": "tense noir",
+      "location": "abandoned factory",
+      "relevant_queries": ["q01", "q02"]
+    },
+    {
+      "id": "clip_02",
+      "title": "Neon alley push-in",
+      "description": "Slow push-in through rain neon alleyway night blue red reflections industrial exterior",
+      "camera_motion": "slow push-in",
+      "lighting": "neon reflections",
+      "mood": "melancholic",
+      "location": "city alley",
+      "relevant_queries": ["q02"]
+    },
+    {
+      "id": "clip_03",
+      "title": "Bright office handheld",
+      "description": "Handheld medium shot in bright daylight modern office interior conversation",
+      "camera_motion": "handheld",
+      "lighting": "daylight fluorescent",
+      "mood": "neutral",
+      "location": "office",
+      "relevant_queries": ["q03"]
+    },
+    {
+      "id": "clip_04",
+      "title": "Forest path follow",
+      "description": "Following shot through misty forest path morning soft green light",
+      "camera_motion": "following",
+      "lighting": "soft morning",
+      "mood": "mysterious",
+      "location": "forest",
+      "relevant_queries": ["q04"]
+    },
+    {
+      "id": "clip_05",
+      "title": "Rooftop crane night",
+      "description": "High crane shot over rooftop city skyline night cool blue wash",
+      "camera_motion": "crane",
+      "lighting": "cool blue night",
+      "mood": "lonely",
+      "location": "rooftop",
+      "relevant_queries": ["q05"]
+    },
+    {
+      "id": "clip_06",
+      "title": "Industrial corridor dolly",
+      "description": "Dolly forward through dark industrial corridor pipes sparks orange glow",
+      "camera_motion": "dolly forward",
+      "lighting": "orange spark glow",
+      "mood": "urgent",
+      "location": "industrial corridor",
+      "relevant_queries": ["q01", "q06"]
+    },
+    {
+      "id": "clip_07",
+      "title": "Ocean pier static",
+      "description": "Static wide shot of ocean pier sunset warm golden hour waves",
+      "camera_motion": "static",
+      "lighting": "golden hour",
+      "mood": "peaceful",
+      "location": "ocean pier",
+      "relevant_queries": ["q07"]
+    },
+    {
+      "id": "clip_08",
+      "title": "Subway platform track",
+      "description": "Side tracking shot on subway platform fluorescent lights crowd night",
+      "camera_motion": "side tracking",
+      "lighting": "fluorescent",
+      "mood": "restless",
+      "location": "subway",
+      "relevant_queries": ["q08"]
+    },
+    {
+      "id": "clip_09",
+      "title": "Warehouse silhouette",
+      "description": "Low angle silhouette in warehouse doorway backlight dust motes industrial",
+      "camera_motion": "static low angle",
+      "lighting": "backlight silhouette",
+      "mood": "ominous",
+      "location": "warehouse",
+      "relevant_queries": ["q01", "q06"]
+    },
+    {
+      "id": "clip_10",
+      "title": "Kitchen morning pan",
+      "description": "Gentle pan across sunny kitchen breakfast table warm interior",
+      "camera_motion": "gentle pan",
+      "lighting": "warm morning sun",
+      "mood": "domestic",
+      "location": "kitchen",
+      "relevant_queries": ["q03"]
+    },
+    {
+      "id": "clip_11",
+      "title": "Rain neon factory window",
+      "description": "Slow lateral track past broken factory windows rain neon spill blue red night",
+      "camera_motion": "lateral track",
+      "lighting": "blue-red neon rain",
+      "mood": "tense",
+      "location": "abandoned factory",
+      "relevant_queries": ["q01", "q02"]
+    },
+    {
+      "id": "clip_12",
+      "title": "Desert road drone",
+      "description": "High drone forward over desert road heat haze midday harsh sun",
+      "camera_motion": "drone forward",
+      "lighting": "harsh midday",
+      "mood": "desolate",
+      "location": "desert",
+      "relevant_queries": ["q05"]
+    }
+  ],
+  "queries": [
+    {
+      "id": "q01",
+      "text": "A slow rear tracking shot in a dark industrial interior with blue-red neon lighting.",
+      "relevant_clip_ids": ["clip_01", "clip_06", "clip_09", "clip_11"]
+    },
+    {
+      "id": "q02",
+      "text": "Night rain neon industrial mood blue and red light.",
+      "relevant_clip_ids": ["clip_01", "clip_02", "clip_11"]
+    },
+    {
+      "id": "q03",
+      "text": "Bright daylight office handheld conversation.",
+      "relevant_clip_ids": ["clip_03", "clip_10"]
+    },
+    {
+      "id": "q04",
+      "text": "Misty forest morning follow shot soft green light.",
+      "relevant_clip_ids": ["clip_04"]
+    },
+    {
+      "id": "q05",
+      "text": "High rooftop or aerial night city cool blue.",
+      "relevant_clip_ids": ["clip_05", "clip_12"]
+    },
+    {
+      "id": "q06",
+      "text": "Dark industrial corridor urgent forward camera.",
+      "relevant_clip_ids": ["clip_06", "clip_09"]
+    },
+    {
+      "id": "q07",
+      "text": "Peaceful ocean pier sunset static wide.",
+      "relevant_clip_ids": ["clip_07"]
+    },
+    {
+      "id": "q08",
+      "text": "Subway platform side tracking fluorescent night crowd.",
+      "relevant_clip_ids": ["clip_08"]
+    },
+    {
+      "id": "q09",
+      "text_ko": "어두운 공장 내부에서 천천히 뒤를 따라가는 트래킹 샷, 네온 조명",
+      "text": "어두운 공장 내부에서 천천히 뒤를 따라가는 트래킹 샷, 네온 조명",
+      "relevant_clip_ids": ["clip_01", "clip_11"]
+    },
+    {
+      "id": "q10",
+      "text": "Warm domestic kitchen morning gentle pan.",
+      "relevant_clip_ids": ["clip_10"]
+    }
+  ]
+}

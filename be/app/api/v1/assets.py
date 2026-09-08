@@ -66,6 +66,8 @@ def asset_provenance(asset_id: int, db: Session = Depends(get_db)):
         "workflow_version": job.workflow_version.version if job.workflow_version else None,
         "workflow_hash": job.workflow_version.workflow_hash if job.workflow_version else None,
         "reference_asset_id": job.reference_asset_id,
+        "retrieval_event_id": job.retrieval_event_id,
+        "reference_asset_embedding_id": job.reference_asset_embedding_id,
         "width": job.width,
         "height": job.height,
         "fps": job.fps,

@@ -23,9 +23,17 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
     openai_api_key: str = ""
     poll_interval_seconds: int = 2
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_origins: str = "http://localhost:5174,http://127.0.0.1:5174"
     comfy_workflows_dir: str = str(ROOT_DIR / "comfy" / "workflows")
     comfy_node_map_dir: str = str(ROOT_DIR / "comfy" / "node_map")
+    # P1 — Approved Reference Retrieval
+    embedding_provider: str = "mock"
+    twelve_labs_api_key: str = ""
+    embedding_model: str = "marengo3.5"
+    embedding_dim: int = 512
+    # P2 — Multimodal RAG (OpenAI Agents SDK)
+    agents_sdk_enabled: bool = True
+    openai_agent_model: str = "gpt-4o-mini"
 
     @property
     def cors_origin_list(self) -> list[str]:

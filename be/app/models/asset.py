@@ -29,3 +29,6 @@ class Asset(Base):
         foreign_keys=[generation_job_id],
     )
     reviews = relationship("Review", back_populates="asset", cascade="all, delete-orphan")
+    embeddings = relationship(
+        "AssetEmbedding", back_populates="asset", cascade="all, delete-orphan"
+    )
