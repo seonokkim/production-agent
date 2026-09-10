@@ -33,8 +33,17 @@ class ProductionAgent:
         self.generations = generations or GenerationService()
         self.reviews = reviews or ReviewService()
 
-    def suggest_shot_spec(self, db: Session, scene_id: int) -> ShotSpecRead:
-        return self.shot_specs.suggest(db, scene_id)
+    def suggest_shot_spec(
+        self,
+        db: Session,
+        scene_id: int,
+        *,
+        llm_provider: str | None = None,
+        llm_model: str | None = None,
+    ) -> ShotSpecRead:
+        return self.shot_specs.suggest(
+            db, scene_id, llm_provider=llm_provider, llm_model=llm_model
+        )
 
     def submit_generation(
         self, db: Session, scene_id: int, payload: GenerationCreate

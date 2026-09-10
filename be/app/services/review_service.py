@@ -6,9 +6,10 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app.models import Asset, Review
+from app.models import Asset, GenerationJob, Review, Scene
 from app.schemas import ReviewCreate, ReviewRead
 from app.services.retrieval_service import RetrievalService
+from app.services.review_webhook import emit_asset_reviewed
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,21 @@ class ReviewService:
                 self.retrieval.index_asset(db, asset_id, require_approved=True)
             except Exception:
                 logger.exception("Failed to index approved asset %s for retrieval", asset_id)
+
+        # P1.5: n8n event automation (does not fail the review).
+        project_id = scene_id = None
+        if asset.generation_job_id:
+            job = db.get(GenerationJob, asset.generation_job_id)
+            if job:
+                scene_id = job.scene_id
+                scene = db.get(Scene, job.scene_id) if job.scene_id else None
+                project_id = scene.project_id if scene else None
+        try:
+            emit_asset_reviewed(
+                asset=asset, review=review, project_id=project_id, scene_id=scene_id
+            )
+        except Exception:
+            logger.exception("Unexpected n8n emit failure for asset %s", asset_id)
 
         return ReviewRead.model_validate(review)
 

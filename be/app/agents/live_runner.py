@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.agents import tools as rag_tools
 from app.agents.mock_runner import STAGES
-from app.agents.model_provider import should_use_live_agents
+from app.agents.model_provider import build_agent_model, resolve_runtime_label, should_use_live_agents
 from app.config import get_settings
 from app.models import AgentCitation, AgentRun, AgentRunEvent
 
@@ -109,9 +109,11 @@ def try_run_live_agent(
     run: AgentRun,
     *,
     embedding_provider: str | None = None,
+    agent_llm_provider: str | None = None,
+    agent_model: str | None = None,
 ) -> AgentRun | None:
-    """Attempt OpenAI Agents Runner. Return None to signal mock fallback."""
-    if not should_use_live_agents():
+    """Attempt Agents SDK Runner (OpenAI or Ollama/Qwen). Return None for mock fallback."""
+    if not should_use_live_agents(agent_llm_provider):
         return None
 
     try:
@@ -125,7 +127,7 @@ def try_run_live_agent(
 
     started = time.perf_counter()
     run.status = "running"
-    run.runtime = "openai-agents"
+    run.runtime = resolve_runtime_label(agent_llm_provider)
     db.commit()
 
     emb = embedding_provider or run.embedding_provider or "mock"
@@ -151,7 +153,7 @@ def try_run_live_agent(
     )
     agent = Agent(
         name="Multimodal RAG",
-        model=settings.openai_agent_model,
+        model=build_agent_model(agent_llm_provider, agent_model),
         instructions=(
             "You search approved production stills and video via tools only. "
             "Always cite cite_key for media claims. Distinguish image vs video. "
@@ -175,7 +177,7 @@ def try_run_live_agent(
     except Exception as exc:  # noqa: BLE001 — fall back to deterministic compose
         compose_note = f"Live Agents run failed ({exc}); used deterministic compose"
         answer = rag_tools.compose_answer(run.query_text, hits)
-        run.runtime = "openai-agents+mock-compose"
+        run.runtime = f"{resolve_runtime_label(agent_llm_provider)}+mock-compose"
 
     _persist_hits(db, run, hits)
     run.answer_text = answer.strip() or rag_tools.compose_answer(run.query_text, hits)

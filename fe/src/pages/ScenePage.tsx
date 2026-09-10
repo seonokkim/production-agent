@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Clock3,
   Fingerprint,
+  GitBranch,
   Image as ImageIcon,
   Loader2,
   Search,
@@ -15,6 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/api/client";
+import { LlmProviderSelect, type LlmProviderId } from "@/components/LlmProviderSelect";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { WorkflowViewerDialog } from "@/features/workflow/WorkflowViewerDialog";
+import type { WorkflowViewerMode } from "@/features/workflow/workflowTypes";
 import { cn, formatDurationMs, formatRelativeTime } from "@/lib/utils";
 import type { Generation, ReferenceSearchHit, ShotSpec } from "@/types";
 
@@ -107,11 +111,16 @@ export function ScenePage() {
 
   const [brief, setBrief] = useState("");
   const [draft, setDraft] = useState(emptySpec);
+  const [llmProvider, setLlmProvider] = useState<LlmProviderId>("openai");
   const [rejectComment, setRejectComment] = useState("");
+  const llmOptions = useQuery({ queryKey: ["llm-options"], queryFn: api.llmOptions });
   const [rejectOpen, setRejectOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeGenId, setActiveGenId] = useState<number | null>(null);
   const [genTab, setGenTab] = useState<"keyframe" | "video">("keyframe");
+  const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [workflowMode, setWorkflowMode] = useState<WorkflowViewerMode | null>(null);
+  const [rawJsonOpen, setRawJsonOpen] = useState(false);
   const [retrievalEventId, setRetrievalEventId] = useState<number | null>(null);
   const [searchHits, setSearchHits] = useState<ReferenceSearchHit[]>([]);
   const [selectedEmbeddingId, setSelectedEmbeddingId] = useState<number | null>(null);
@@ -173,7 +182,7 @@ export function ScenePage() {
   const suggest = useMutation({
     mutationFn: async () => {
       await api.updateScene(sceneId, { brief });
-      return api.suggestShotSpec(sceneId);
+      return api.suggestShotSpec(sceneId, { llm_provider: llmProvider });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["shot-specs", sceneId] });
@@ -361,7 +370,7 @@ export function ScenePage() {
                 value={brief}
                 onChange={(e) => setBrief(e.target.value)}
               />
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="secondary"
                   onClick={() => saveBrief.mutate()}
@@ -373,6 +382,12 @@ export function ScenePage() {
                   <Sparkles className="h-4 w-4" />
                   Suggest shot spec
                 </Button>
+                <LlmProviderSelect
+                  value={llmProvider}
+                  onChange={setLlmProvider}
+                  options={llmOptions.data?.options}
+                  label="Suggest LLM"
+                />
               </div>
             </CardContent>
           </Card>
@@ -708,9 +723,22 @@ export function ScenePage() {
                       mono
                     />
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setDetailOpen(true)}>
-                    View full provenance
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setWorkflowMode({ kind: "generation", generationId: activeGen.id });
+                        setWorkflowOpen(true);
+                      }}
+                    >
+                      <GitBranch className="h-3.5 w-3.5" />
+                      View Workflow
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDetailOpen(true)}>
+                      View full provenance
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -731,17 +759,29 @@ export function ScenePage() {
                 </TabsList>
                 <TabsContent value="keyframe" className="space-y-3">
                   <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                    <Meta label="Workflow" value="keyframe_v1" mono />
+                    <Meta label="Workflow" value="keyframe_v1 · SDXL 1.0" mono />
                     <Meta label="Seed" value="Random" />
                     <Meta label="Resolution" value="1280 × 720" mono />
                   </dl>
-                  <Button
-                    onClick={() => generateKeyframe.mutate()}
-                    disabled={generateKeyframe.isPending || !latestSpec}
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    Generate keyframe
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => generateKeyframe.mutate()}
+                      disabled={generateKeyframe.isPending || !latestSpec}
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      Generate keyframe
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setWorkflowMode({ kind: "active", workflowName: "keyframe_v1" });
+                        setWorkflowOpen(true);
+                      }}
+                    >
+                      <GitBranch className="h-4 w-4" />
+                      View Workflow
+                    </Button>
+                  </div>
                 </TabsContent>
                 <TabsContent value="video" className="space-y-3">
                   <div className="flex items-center gap-3 rounded-md border border-border p-2">
@@ -768,16 +808,28 @@ export function ScenePage() {
                     </div>
                   </div>
                   <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                    <Meta label="Workflow" value="i2v_v1" mono />
+                    <Meta label="Workflow" value="i2v_v1 · Wan2.2-TI2V-5B" mono />
                     <Meta label="Duration" value="4 sec" />
                   </dl>
-                  <Button
-                    onClick={() => generateVideo.mutate()}
-                    disabled={generateVideo.isPending || !selectedKeyframe}
-                  >
-                    <Video className="h-4 w-4" />
-                    Generate video
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => generateVideo.mutate()}
+                      disabled={generateVideo.isPending || !selectedKeyframe}
+                    >
+                      <Video className="h-4 w-4" />
+                      Generate video
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setWorkflowMode({ kind: "active", workflowName: "i2v_v1" });
+                        setWorkflowOpen(true);
+                      }}
+                    >
+                      <GitBranch className="h-4 w-4" />
+                      View Workflow
+                    </Button>
+                  </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -906,18 +958,23 @@ export function ScenePage() {
 
               <section className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Provenance
+                  Workflow
                 </h3>
                 <dl className="space-y-2 text-sm">
-                  <Row k="Provider" v={activeGen.provider} />
-                  <Row k="Model" v={`${activeGen.model_name} / ${activeGen.model_version}`} />
                   <Row
-                    k="Workflow"
+                    k="Name"
                     v={`${activeGen.workflow_version?.name || "—"} · ${activeGen.workflow_version?.version || ""}`}
                     mono
                   />
                   <Row
-                    k="Workflow hash"
+                    k="Model"
+                    v={
+                      activeGen.workflow_version?.model_name ||
+                      `${activeGen.model_name} / ${activeGen.model_version}`
+                    }
+                  />
+                  <Row
+                    k="Hash"
                     v={
                       activeGen.workflow_version?.workflow_hash
                         ? `${activeGen.workflow_version.workflow_hash.slice(0, 12)}…`
@@ -925,6 +982,32 @@ export function ScenePage() {
                     }
                     mono
                   />
+                </dl>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setWorkflowMode({ kind: "generation", generationId: activeGen.id });
+                      setWorkflowOpen(true);
+                    }}
+                  >
+                    <GitBranch className="h-3.5 w-3.5" />
+                    View Graph
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setRawJsonOpen(true)}>
+                    Raw JSON
+                  </Button>
+                </div>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Provenance
+                </h3>
+                <dl className="space-y-2 text-sm">
+                  <Row k="Provider" v={activeGen.provider} />
+                  <Row k="Model" v={`${activeGen.model_name} / ${activeGen.model_version}`} />
                   <Row k="Seed" v={String(activeGen.seed)} mono />
                   <Row
                     k="Reference"
@@ -983,6 +1066,33 @@ export function ScenePage() {
           )}
         </SheetContent>
       </Sheet>
+
+      <WorkflowViewerDialog
+        open={workflowOpen}
+        onOpenChange={setWorkflowOpen}
+        mode={workflowMode}
+      />
+
+      <Dialog open={rawJsonOpen} onOpenChange={setRawJsonOpen}>
+        <DialogContent className="w-[min(92vw,720px)] max-w-[720px]">
+          <DialogHeader>
+            <DialogTitle>Frozen workflow snapshot (raw JSON)</DialogTitle>
+            <DialogDescription>
+              GenerationJob.workflow_snapshot_json — authoritative execution graph for this job.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[60vh] overflow-auto rounded-md border border-border bg-black/40 p-3 font-mono text-[11px] text-muted-foreground">
+            {(() => {
+              if (!activeGen?.workflow_snapshot_json) return "—";
+              try {
+                return JSON.stringify(JSON.parse(activeGen.workflow_snapshot_json), null, 2);
+              } catch {
+                return activeGen.workflow_snapshot_json;
+              }
+            })()}
+          </pre>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

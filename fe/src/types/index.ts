@@ -40,7 +40,7 @@ export type ShotSpec = {
 
 export type Asset = {
   id: number;
-  generation_job_id: number;
+  generation_job_id: number | null;
   asset_type: string;
   file_path: string;
   mime_type: string;
@@ -51,6 +51,14 @@ export type Asset = {
   status: string;
   created_at: string;
   url: string | null;
+  original_filename?: string | null;
+  file_size?: number | null;
+  source?: string | null;
+  ingestion_status?: string | null;
+  extracted_text?: string | null;
+  extracted_text_path?: string | null;
+  metadata_json?: Record<string, unknown> | null;
+  processed_at?: string | null;
 };
 
 export type WorkflowVersion = {
@@ -62,6 +70,38 @@ export type WorkflowVersion = {
   model_name: string;
   model_version: string;
   active: boolean;
+};
+
+export type WorkflowGraphNode = {
+  id: string;
+  class_type: string;
+  label: string;
+  category: string;
+  parameters: Record<string, string | number | boolean | null>;
+};
+
+export type WorkflowGraphEdge = {
+  source: string;
+  source_output: number;
+  target: string;
+  target_input: string;
+};
+
+export type WorkflowGraph = {
+  workflow_name: string | null;
+  workflow_version: string | null;
+  workflow_type: string | null;
+  workflow_hash: string | null;
+  model_name: string | null;
+  model_version: string | null;
+  source: string;
+  frozen: boolean;
+  generation_id: number | null;
+  node_count: number;
+  edge_count: number;
+  nodes: WorkflowGraphNode[];
+  edges: WorkflowGraphEdge[];
+  read_only: boolean;
 };
 
 export type Generation = {
@@ -107,6 +147,27 @@ export type DashboardMetrics = {
   avg_generation_ms: number | null;
   failed_jobs: number;
   rejection_reasons: Record<string, number>;
+  total_assets?: number;
+  documents?: number;
+  pending_ingestion?: number;
+  failed_ingestion?: number;
+  last_airflow_run_status?: string | null;
+  last_airflow_run_at?: string | null;
+  assets_indexed?: number;
+};
+
+export type BatchRun = {
+  id: number;
+  pipeline_name: string;
+  airflow_dag_run_id: string | null;
+  status: string;
+  records_discovered: number;
+  records_processed: number;
+  records_failed: number;
+  started_at: string | null;
+  completed_at: string | null;
+  error_summary: string | null;
+  created_at: string;
 };
 
 export type Review = {

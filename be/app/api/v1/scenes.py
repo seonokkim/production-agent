@@ -3,9 +3,16 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Scene
-from app.schemas import SceneRead, SceneUpdate
+from app.schemas import (
+    GenerationAccepted,
+    GenerationCreate,
+    GenerationRead,
+    SceneRead,
+    SceneUpdate,
+    ShotSpecRead,
+    ShotSpecSuggestRequest,
+)
 from app.services.production_agent import ProductionAgent
-from app.schemas import GenerationAccepted, GenerationCreate, GenerationRead, ShotSpecRead
 
 router = APIRouter(tags=["scenes"])
 agent = ProductionAgent()
@@ -32,9 +39,19 @@ def update_scene(scene_id: int, payload: SceneUpdate, db: Session = Depends(get_
 
 
 @router.post("/scenes/{scene_id}/shot-spec/suggest", response_model=ShotSpecRead)
-def suggest_shot_spec(scene_id: int, db: Session = Depends(get_db)):
+def suggest_shot_spec(
+    scene_id: int,
+    payload: ShotSpecSuggestRequest | None = None,
+    db: Session = Depends(get_db),
+):
+    body = payload or ShotSpecSuggestRequest()
     try:
-        return agent.suggest_shot_spec(db, scene_id)
+        return agent.suggest_shot_spec(
+            db,
+            scene_id,
+            llm_provider=body.llm_provider,
+            llm_model=body.llm_model,
+        )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:

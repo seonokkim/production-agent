@@ -25,9 +25,21 @@ ComfyUI is the generation execution engine. Creators use a production-oriented w
 
 ## Product tour
 
+### Dashboard — workflow health at a glance
+
+Landing surface for production health: job counts, approval rate, average attempts / gen time, and recent activity — with live provider status in the sidebar (ComfyUI, OpenAI, Marengo).
+
+![Dashboard — jobs, approvals, and recent activity](asset/dashboard.png)
+
+### Projects — scenes under Project Aurora
+
+Browse projects and open scenes (episode / scene / draft status). Project Aurora is the seeded drama previz sandbox used throughout the demo path.
+
+![Projects — Project Aurora scene list](asset/project_list.png)
+
 ### SceneFlow — brief → shot spec → generate → review
 
-The scene workspace is the core production surface. Creators write a **Scene Brief**, ask the LLM to **Suggest shot spec**, edit camera / lighting / subject fields, then **Generate** keyframes or short video through ComfyUI (or mock). Every completed job exposes timing, workflow id, model, seed, and a **View full provenance** trail — approve, reject, or exact re-run without overwriting history.
+The scene workspace is the core production surface. Creators write a **Scene Brief**, ask the LLM to **Suggest shot spec**, edit camera / lighting / subject fields, then **Generate** keyframes or short video through ComfyUI. Every completed job exposes timing, workflow id, model, seed, and a **View full provenance** trail — approve, reject, or exact re-run without overwriting history.
 
 ![Scene workspace — Project Aurora / Abandoned Factory](asset/project.png)
 
@@ -37,6 +49,12 @@ The scene workspace is the core production surface. Creators write a **Scene Bri
 | Shot Specification | Structured, versioned fields (scene, subject, camera, lighting, …) |
 | Preview | Generated still / video with status, workflow (`keyframe_v1` / `i2v_v1`), model, seed |
 | Provenance | Frozen config for audit and exact re-run |
+
+### Assets — approved and generated media library
+
+Browse keyframes and videos from completed jobs. Detail views keep technical paths; the grid is the production media library for review and RAG indexing.
+
+![Assets — keyframe and video library](asset/assets.png)
 
 ### Multimodal RAG — search approved media, cite, attach
 
@@ -51,6 +69,17 @@ The scene workspace is the core production surface. Creators write a **Scene Bri
 | Attach to scene | Provenance-backed handoff into SceneFlow |
 | Environment strip | Live `generation` / `llm` / `embedding` providers (e.g. ComfyUI, OpenAI, Marengo) |
 
+### Generation workflows — keyframe still & short video
+
+SceneFlow generates media through two fixed ComfyUI workflows. **Keyframe** makes the still; **I2V** turns an approved keyframe into a short clip.
+
+![ComfyUI generation workflows — keyframe_v1 / i2v_v1](asset/workflow.png)
+
+| Job | Role | Workflow | Models |
+|---|---|---|---|
+| **Keyframe** | Keyframe image from shot spec | `comfy/workflows/keyframe_v1.json` | `sd_xl_base_1.0.safetensors` (SDXL checkpoint) |
+| **I2V** | Short video from approved keyframe | `comfy/workflows/i2v_v1.json` | `wan2.2_ti2v_5B_fp16.safetensors` + `umt5_xxl_fp8_e4m3fn_scaled` + `wan2.2_vae` |
+
 ## Stack
 
 | Layer | Choice |
@@ -59,15 +88,14 @@ The scene workspace is the core production surface. Creators write a **Scene Bri
 | Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic |
 | DB (default) | SQLite (`data/production_agent.db`) |
 | DB (optional) | PostgreSQL + pgvector via Docker Compose |
-| Generation | `mock` (default) + ComfyUI adapter |
-| LLM | `mock` deterministic fallback, or OpenAI when keyed |
-| Embeddings (P1) | `mock` (default) or Twelve Labs Marengo 3.5 → local cosine / pgvector |
-| Agents (P2) | Multimodal RAG via OpenAI Agents SDK (optional extra); mock runner without key |
+| Generation | ComfyUI (`keyframe_v1`, `i2v_v1`) |
+| LLM | OpenAI (shot-spec suggest) |
+| Embeddings (P1) | Twelve Labs Marengo 3.5 → local cosine / pgvector |
+| Agents (P2) | Multimodal RAG via OpenAI Agents SDK |
 
-**Dev ports (this repo):** frontend `http://127.0.0.1:5174` → proxies to backend `http://127.0.0.1:8001`  
-(Sibling `production-agent-dev` uses `5173` / `8000` — do not mix them.)
+**Dev ports:** frontend `http://127.0.0.1:5174` → proxies to backend `http://127.0.0.1:8001`
 
-## Quick start (mock mode — no GPU required)
+## Quick start
 
 ```bash
 cp .env.example .env
@@ -100,11 +128,11 @@ make test
 ### Optional: retrieval corpus + Multimodal RAG
 
 ```bash
-# Index demo approved assets (mock embeddings by default)
+# Index demo approved assets
 make seed-retrieval
 
 # Live Marengo embeddings (set TWELVE_LABS_API_KEY + EMBEDDING_PROVIDER=marengo)
-# OpenAI Agents live path (set OPENAI_API_KEY; install agents extra)
+# OpenAI Agents path (set OPENAI_API_KEY; install agents extra)
 cd be && . .venv/bin/activate && pip install -e ".[agents,dev]"
 
 make eval-retrieval   # optional retrieval smoke metrics
@@ -139,14 +167,14 @@ flowchart LR
     U["Creator"] --> FE["React + TypeScript"]
     FE --> API["FastAPI"]
     API --> SPEC["Shot Spec Service"]
-    SPEC --> LLM["LLM / mock"]
+    SPEC --> LLM["LLM"]
     API --> RET["Retrieval Service"]
-    RET --> EMB["Mock / Marengo"]
+    RET --> EMB["Marengo embeddings"]
     API --> AG["Agents / Multimodal RAG"]
     AG --> EMB
     API --> GS["Generation Service"]
     GS --> CW["Workflow Registry"]
-    GS --> COMFY["ComfyUI or Mock"]
+    GS --> COMFY["ComfyUI"]
     GS --> DB[("SQLite / PostgreSQL")]
     GS --> STORE["Asset Storage"]
     FE --> REVIEW["Approve / Reject / Regenerate"]
@@ -157,21 +185,20 @@ flowchart LR
 1. The agent is a **bounded coordinator** — it never approves its own output.
 2. Every job stores a **frozen configuration** (prompt, seed, model, workflow hash, …).
 3. Exact re-run creates a **new** job with `parent_generation_id`; prior rows are never overwritten.
-4. `GENERATION_PROVIDER=mock` supports the full product without a GPU.
-5. Frontend never talks to ComfyUI directly.
-6. Only two checked-in workflows: `keyframe_v1`, `i2v_v1`.
-7. Multimodal RAG **searches and cites** approved media; it does not generate or approve assets.
+4. Frontend never talks to ComfyUI directly — generation goes through FastAPI.
+5. Only two checked-in workflows: `keyframe_v1`, `i2v_v1`.
+6. Multimodal RAG **searches and cites** approved media; it does not generate or approve assets.
 
 ## Configuration
 
 See [`.env.example`](.env.example). Important keys:
 
 ```text
-GENERATION_PROVIDER=mock|comfyui
-COMFYUI_BASE_URL=http://127.0.0.1:8188
-LLM_PROVIDER=mock|openai
+GENERATION_PROVIDER=comfyui
+COMFYUI_BASE_URL=http://127.0.0.1:8189
+LLM_PROVIDER=openai
 OPENAI_API_KEY=
-EMBEDDING_PROVIDER=mock|marengo
+EMBEDDING_PROVIDER=marengo
 TWELVE_LABS_API_KEY=
 AGENTS_SDK_ENABLED=true
 OPENAI_AGENT_MODEL=gpt-4o-mini
@@ -184,11 +211,11 @@ CORS_ORIGINS=http://localhost:5174,http://127.0.0.1:5174
 ```text
 be/                 FastAPI application (app/, alembic/, tests/)
   app/agents/       Multimodal RAG catalog, runners, conversations
-  app/providers/    mock, ComfyUI, LLM, Marengo embeddings
+  app/providers/    ComfyUI, LLM, Marengo embeddings
   app/services/     generation, shot spec, review, retrieval, …
 fe/                 React app (Dashboard, Projects, Scene, Assets, RAG)
 comfy/              Versioned workflow JSON + node maps
-asset/              README product screenshots (SceneFlow, Multimodal RAG)
+asset/              README product screenshots (Dashboard, Projects, SceneFlow, Assets, RAG, workflows)
 storage/            Generated + retrieval assets
 data/demo/          Project Aurora fixture
 data/retrieval/     Retrieval corpus fixture
@@ -206,21 +233,6 @@ scripts/            seed_demo, seed_retrieval_corpus, eval_retrieval, verify_dem
 | `make eval-retrieval` | Retrieval eval script |
 | `make verify` / `test` | Smoke / pytest |
 | `make db-up` / `migrate` | Postgres + Alembic |
-
-## Non-goals (current scope)
-
-Full autonomous multi-agent production loops, Redis/Celery/K8s, enterprise RBAC, cloud deployment, LoRA training, managed Twelve Labs `/search` (we embed + search locally).
-
-## Trade-offs
-
-| Choice | Why |
-|---|---|
-| Polling every ~2s | Enough for single-user MVP; SSE later |
-| Mock providers default | Interview / demo reliability without GPU or paid keys |
-| SQLite default | Zero-friction local draft; Postgres + pgvector ready |
-| Ports 5174 / 8001 | Avoid colliding with sibling `production-agent-dev` |
-| Immutable shot-spec versions on edit | History over in-place mutation |
-| Marengo embeddings only | Vectors + local cosine; no managed search dependency |
 
 ---
 

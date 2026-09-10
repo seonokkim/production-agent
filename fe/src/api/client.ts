@@ -5,6 +5,7 @@ import type {
   AgentConversationDetail,
   AgentRun,
   Asset,
+  BatchRun,
   DashboardMetrics,
   Generation,
   Project,
@@ -12,6 +13,8 @@ import type {
   Review,
   Scene,
   ShotSpec,
+  WorkflowGraph,
+  WorkflowVersion,
 } from "../types";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
@@ -33,7 +36,45 @@ export const api = {
       generation_provider: string;
       llm_provider: string;
       embedding_provider: string;
+      agents_sdk_enabled?: boolean;
+      openai_agent_model?: string;
+      agent_llm_provider?: string;
+      agent_model?: string;
+      agent_llm_options?: Array<{
+        id: string;
+        label: string;
+        default_model: string;
+        notes?: string;
+        available?: boolean;
+      }>;
+      comfyui_base_url?: string;
+      comfyui_url?: string;
     }>("/api/v1/ready"),
+  getComfyuiInfo: () =>
+    request<{
+      comfyui_base_url: string;
+      comfyui_url: string;
+      note?: string;
+    }>("/api/v1/comfyui/info"),
+  listWorkflows: () => request<WorkflowVersion[]>("/api/v1/workflows"),
+  getWorkflowGraph: (workflowVersionId: number) =>
+    request<WorkflowGraph>(`/api/v1/workflows/${workflowVersionId}/graph`),
+  getWorkflowGraphByName: (name: string) =>
+    request<WorkflowGraph>(`/api/v1/workflows/by-name/${encodeURIComponent(name)}/graph`),
+  getGenerationWorkflowGraph: (generationId: number) =>
+    request<WorkflowGraph>(`/api/v1/generations/${generationId}/workflow-graph`),
+  llmOptions: () =>
+    request<{
+      default_provider: string;
+      default_model: string;
+      options: Array<{
+        id: string;
+        label: string;
+        default_model: string;
+        notes?: string;
+        available?: boolean;
+      }>;
+    }>("/api/v1/llm/options"),
   dashboard: () => request<DashboardMetrics>("/api/v1/dashboard"),
   listProjects: () => request<Project[]>("/api/v1/projects"),
   createProject: (body: { name: string; description?: string | null }) =>
@@ -66,9 +107,14 @@ export const api = {
       headers: JSON_HEADERS,
       body: JSON.stringify(body),
     }),
-  suggestShotSpec: (sceneId: number) =>
+  suggestShotSpec: (
+    sceneId: number,
+    body?: { llm_provider?: string | null; llm_model?: string | null },
+  ) =>
     request<ShotSpec>(`/api/v1/scenes/${sceneId}/shot-spec/suggest`, {
       method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body || {}),
     }),
   listShotSpecs: (sceneId: number) =>
     request<ShotSpec[]>(`/api/v1/scenes/${sceneId}/shot-specs`),
@@ -112,7 +158,39 @@ export const api = {
       `/api/v1/generations/${id}/rerun`,
       { method: "POST" },
     ),
-  listAssets: () => request<Asset[]>("/api/v1/assets"),
+  listAssets: (params?: {
+    tab?: "all" | "images" | "videos" | "documents";
+    asset_type?: string;
+    status?: string;
+    ingestion_status?: string;
+    source?: string;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.tab && params.tab !== "all") q.set("tab", params.tab);
+    if (params?.asset_type) q.set("asset_type", params.asset_type);
+    if (params?.status) q.set("status", params.status);
+    if (params?.ingestion_status) q.set("ingestion_status", params.ingestion_status);
+    if (params?.source) q.set("source", params.source);
+    const suffix = q.toString() ? `?${q}` : "";
+    return request<Asset[]>(`/api/v1/assets${suffix}`);
+  },
+  uploadDocument: async (file: File, source = "upload") => {
+    const body = new FormData();
+    body.append("file", file);
+    body.append("source", source);
+    return request<{ asset: Asset; message: string }>("/api/v1/assets/documents", {
+      method: "POST",
+      body,
+    });
+  },
+  runAssetIngestion: (opts?: { airflow_dag_run_id?: string; ingest_landing?: boolean }) => {
+    const q = new URLSearchParams();
+    if (opts?.airflow_dag_run_id) q.set("airflow_dag_run_id", opts.airflow_dag_run_id);
+    if (opts?.ingest_landing === false) q.set("ingest_landing", "false");
+    const suffix = q.toString() ? `?${q}` : "";
+    return request<BatchRun>(`/api/v1/assets/ingestion/run${suffix}`, { method: "POST" });
+  },
+  listIngestionRuns: () => request<BatchRun[]>("/api/v1/assets/ingestion/runs"),
   reviewAsset: (assetId: number, decision: "approved" | "rejected", comment?: string) =>
     request<Review>(`/api/v1/assets/${assetId}/reviews`, {
       method: "POST",
@@ -174,6 +252,8 @@ export const api = {
     media_type?: "any" | "image" | "video";
     conversation_id?: number | null;
     embedding_provider?: "mock" | "marengo" | null;
+    agent_llm_provider?: "openai" | "ollama" | "hf" | "mock" | null;
+    agent_model?: string | null;
   }) =>
     request<AgentRun>("/api/v1/agent-runs", {
       method: "POST",
@@ -188,6 +268,8 @@ export const api = {
       media_type?: "any" | "image" | "video";
       conversation_id?: number | null;
       embedding_provider?: "mock" | "marengo" | null;
+      agent_llm_provider?: "openai" | "ollama" | "hf" | "mock" | null;
+      agent_model?: string | null;
     },
     handlers: {
       onStage?: (stage: {

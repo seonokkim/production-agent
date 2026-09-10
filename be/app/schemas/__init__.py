@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -110,7 +111,7 @@ class AssetRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    generation_job_id: int
+    generation_job_id: int | None = None
     asset_type: str
     file_path: str
     mime_type: str
@@ -121,6 +122,35 @@ class AssetRead(BaseModel):
     status: str
     created_at: datetime
     url: str | None = None
+    original_filename: str | None = None
+    file_size: int | None = None
+    source: str | None = None
+    ingestion_status: str | None = None
+    extracted_text: str | None = None
+    extracted_text_path: str | None = None
+    metadata_json: dict[str, Any] | None = None
+    processed_at: datetime | None = None
+
+
+class DocumentUploadResponse(BaseModel):
+    asset: AssetRead
+    message: str = "Document accepted; pending ingestion"
+
+
+class BatchRunRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    pipeline_name: str
+    airflow_dag_run_id: str | None
+    status: str
+    records_discovered: int
+    records_processed: int
+    records_failed: int
+    started_at: datetime | None
+    completed_at: datetime | None
+    error_summary: str | None
+    created_at: datetime
 
 
 class ReviewCreate(BaseModel):
@@ -151,6 +181,38 @@ class WorkflowVersionRead(BaseModel):
     model_name: str
     model_version: str
     active: bool
+
+
+class WorkflowGraphNode(BaseModel):
+    id: str
+    class_type: str
+    label: str
+    category: str
+    parameters: dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkflowGraphEdge(BaseModel):
+    source: str
+    source_output: int
+    target: str
+    target_input: str
+
+
+class WorkflowGraphRead(BaseModel):
+    workflow_name: str | None = None
+    workflow_version: str | None = None
+    workflow_type: str | None = None
+    workflow_hash: str | None = None
+    model_name: str | None = None
+    model_version: str | None = None
+    source: str = "active"
+    frozen: bool = False
+    generation_id: int | None = None
+    node_count: int = 0
+    edge_count: int = 0
+    nodes: list[WorkflowGraphNode] = Field(default_factory=list)
+    edges: list[WorkflowGraphEdge] = Field(default_factory=list)
+    read_only: bool = True
 
 
 class GenerationRead(BaseModel):
@@ -263,6 +325,14 @@ class DashboardMetrics(BaseModel):
     avg_generation_ms: float | None
     failed_jobs: int
     rejection_reasons: dict[str, int] = Field(default_factory=dict)
+    # P1 Asset Operations
+    total_assets: int = 0
+    documents: int = 0
+    pending_ingestion: int = 0
+    failed_ingestion: int = 0
+    last_airflow_run_status: str | None = None
+    last_airflow_run_at: datetime | None = None
+    assets_indexed: int = 0
 
 
 # --- P2 Multimodal RAG (OpenAI Agents) ---
@@ -285,7 +355,30 @@ class AgentRunCreate(BaseModel):
     media_type: str = Field(default="any", pattern="^(any|image|video)$")
     conversation_id: int | None = None
     embedding_provider: str | None = Field(default=None, pattern="^(mock|marengo)$")
+    agent_llm_provider: str | None = Field(
+        default=None, pattern="^(openai|ollama|hf|mock)$"
+    )
+    agent_model: str | None = None
 
+
+class ShotSpecSuggestRequest(BaseModel):
+    llm_provider: str | None = Field(default=None, pattern="^(openai|ollama|hf|mock)$")
+    llm_model: str | None = None
+
+
+class LlmOption(BaseModel):
+    id: str
+    label: str
+    default_model: str
+    notes: str = ""
+    available: bool = True
+    local_dir: str | None = None
+
+
+class LlmOptionsResponse(BaseModel):
+    default_provider: str
+    default_model: str
+    options: list[LlmOption]
 
 class AgentCitationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

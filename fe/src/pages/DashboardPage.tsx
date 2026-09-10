@@ -1,4 +1,4 @@
-import { Activity, CheckCircle2, Clock3, Layers, Percent, XCircle } from "lucide-react";
+import { Activity, CheckCircle2, Clock3, FileText, FolderOpen, Layers, Percent, TimerReset, XCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDurationMs } from "@/lib/utils";
+import { formatDurationMs, formatRelativeTime } from "@/lib/utils";
 
 const metricMeta = [
   { key: "generation_jobs" as const, label: "Generation jobs", icon: Layers },
@@ -18,6 +18,13 @@ const metricMeta = [
   { key: "avg_attempts_per_approval" as const, label: "Avg attempts", icon: Activity },
   { key: "avg_generation_ms" as const, label: "Avg gen time", icon: Clock3, format: (v: number | null) => formatDurationMs(v) },
   { key: "failed_jobs" as const, label: "Failed jobs", icon: XCircle },
+];
+
+const opsMeta = [
+  { key: "total_assets" as const, label: "Total assets", icon: FolderOpen },
+  { key: "documents" as const, label: "Documents", icon: FileText },
+  { key: "pending_ingestion" as const, label: "Pending ingestion", icon: TimerReset },
+  { key: "failed_ingestion" as const, label: "Failed ingestion", icon: XCircle },
 ];
 
 export function DashboardPage() {
@@ -63,6 +70,46 @@ export function DashboardPage() {
             );
           })}
       </div>
+
+      <section className="mb-6">
+        <h2 className="mb-3 text-base font-semibold">Asset Operations</h2>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.isLoading &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-[88px] rounded-lg" />
+            ))}
+          {metrics.data &&
+            opsMeta.map((m) => {
+              const Icon = m.icon;
+              const value = String(metrics.data[m.key] ?? 0);
+              return (
+                <Card key={m.key} className="transition-colors hover:border-white/14">
+                  <CardHeader className="flex-row items-center justify-between space-y-0 pb-1">
+                    <CardDescription className="text-xs uppercase tracking-wide">
+                      {m.label}
+                    </CardDescription>
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-semibold tracking-tight">{value}</div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+        </div>
+        {metrics.data?.last_airflow_run_status && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Last batch run:{" "}
+            <Badge variant="outline">{metrics.data.last_airflow_run_status}</Badge>
+            {metrics.data.last_airflow_run_at
+              ? ` · ${formatRelativeTime(metrics.data.last_airflow_run_at)}`
+              : null}
+            {typeof metrics.data.assets_indexed === "number"
+              ? ` · ${metrics.data.assets_indexed} indexed`
+              : null}
+          </p>
+        )}
+      </section>
 
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between gap-3">

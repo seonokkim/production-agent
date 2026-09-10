@@ -65,10 +65,18 @@ def create_and_execute(db: Session, payload: AgentRunCreate) -> AgentRunRead:
     if payload.agent_id != MULTIMODAL_RAG_AGENT_ID:
         raise ValueError("Only multimodal-rag is supported in MVP")
 
-    runtime = resolve_runtime_label()
+    settings = get_settings()
+    emb_choice = (payload.embedding_provider or settings.embedding_provider or "mock").strip().lower()
+    if emb_choice in {"twelvelabs", "twelve_labs", "twelve-labs"}:
+        emb_choice = "marengo"
+
+    llm_prov = payload.agent_llm_provider
+    llm_model = payload.agent_model
+    runtime = resolve_runtime_label(llm_prov)
+    live_ok = should_use_live_agents(llm_prov)
     MultimodalRagAgentFactory.create(
-        runtime=runtime if should_use_live_agents() else "mock",
-        db=db if should_use_live_agents() else None,
+        runtime=runtime if live_ok else "mock",
+        db=db if live_ok else None,
         project_id=payload.project_id,
         media_type=payload.media_type,
     )
@@ -81,11 +89,6 @@ def create_and_execute(db: Session, payload: AgentRunCreate) -> AgentRunRead:
         media_type=payload.media_type,
         first_query=payload.query,
     )
-
-    settings = get_settings()
-    emb_choice = (payload.embedding_provider or settings.embedding_provider or "mock").strip().lower()
-    if emb_choice in {"twelvelabs", "twelve_labs", "twelve-labs"}:
-        emb_choice = "marengo"
 
     run = AgentRun(
         agent_id=payload.agent_id,
@@ -103,8 +106,14 @@ def create_and_execute(db: Session, payload: AgentRunCreate) -> AgentRunRead:
     db.refresh(run)
 
     live = (
-        try_run_live_agent(db, run, embedding_provider=emb_choice)
-        if should_use_live_agents()
+        try_run_live_agent(
+            db,
+            run,
+            embedding_provider=emb_choice,
+            agent_llm_provider=llm_prov,
+            agent_model=llm_model,
+        )
+        if live_ok
         else None
     )
     if live is None:

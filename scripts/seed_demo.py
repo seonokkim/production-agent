@@ -33,7 +33,7 @@ def main() -> None:
             )
             if scene:
                 print(f"Scene already exists: id={scene.id}")
-                print(f"Open http://127.0.0.1:5174/scenes/{scene.id}")
+                print(f"Open http://localhost:5173/scenes/{scene.id}")
                 return
             project = existing
         else:
@@ -57,7 +57,7 @@ def main() -> None:
         db.commit()
         db.refresh(scene)
         print(f"Seeded project={project.id} scene={scene.id}")
-        print(f"Open http://127.0.0.1:5174/scenes/{scene.id}")
+        print(f"Open http://localhost:5173/scenes/{scene.id}")
     finally:
         db.close()
 

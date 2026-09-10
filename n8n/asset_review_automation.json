@@ -1,0 +1,139 @@
+{
+  "name": "Asset Review Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "asset-review",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook · asset.reviewed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "asset-review"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.decision}}",
+              "operation": "equals",
+              "value2": "approved"
+            }
+          ]
+        }
+      },
+      "id": "if-approve",
+      "name": "IF Approve",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "channel",
+              "value": "production-review"
+            },
+            {
+              "name": "severity",
+              "value": "={{$json.decision}}"
+            },
+            {
+              "name": "message",
+              "value": "=Asset #{{$json.asset_id}} ({{$json.asset_type}}) was {{$json.decision}} by {{$json.reviewer}}. {{$json.review_comment || ''}} Provenance: {{$json.provenance_url}}"
+            },
+            {
+              "name": "asset_id",
+              "value": "={{$json.asset_id}}"
+            },
+            {
+              "name": "project_id",
+              "value": "={{$json.project_id}}"
+            },
+            {
+              "name": "scene_id",
+              "value": "={{$json.scene_id}}"
+            }
+          ]
+        }
+      },
+      "id": "format-approve",
+      "name": "Format approve message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [540, -80]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "channel",
+              "value": "production-review"
+            },
+            {
+              "name": "severity",
+              "value": "={{$json.decision}}"
+            },
+            {
+              "name": "message",
+              "value": "=Asset #{{$json.asset_id}} ({{$json.asset_type}}) was REJECTED by {{$json.reviewer}}. Reason: {{$json.review_comment || 'unspecified'}}. Provenance: {{$json.provenance_url}}"
+            },
+            {
+              "name": "asset_id",
+              "value": "={{$json.asset_id}}"
+            }
+          ]
+        }
+      },
+      "id": "format-reject",
+      "name": "Format reject message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [540, 120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"delivered\": true, \"sink\": \"mock-log\", \"decision\": $json.severity, \"message\": $json.message, \"asset_id\": $json.asset_id } }}"
+      },
+      "id": "respond",
+      "name": "Mock sink · respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [820, 0]
+    }
+  ],
+  "connections": {
+    "Webhook · asset.reviewed": {
+      "main": [[{ "node": "IF Approve", "type": "main", "index": 0 }]]
+    },
+    "IF Approve": {
+      "main": [
+        [{ "node": "Format approve message", "type": "main", "index": 0 }],
+        [{ "node": "Format reject message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format approve message": {
+      "main": [[{ "node": "Mock sink · respond", "type": "main", "index": 0 }]]
+    },
+    "Format reject message": {
+      "main": [[{ "node": "Mock sink · respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

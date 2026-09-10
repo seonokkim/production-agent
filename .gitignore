@@ -40,7 +40,17 @@ storage/outputs/**
 !storage/outputs/.gitkeep
 storage/inputs/**
 !storage/inputs/.gitkeep
+storage/documents/**
+!storage/documents/.gitkeep
 storage/demo/**
+
+# ComfyUI runtime (local inputs/outputs + machine-specific symlinks)
+comfy_runtime/input/**
+!comfy_runtime/input/.gitkeep
+comfy_runtime/output/**
+!comfy_runtime/output/.gitkeep
+comfy_runtime/models
+comfy_runtime/custom_nodes
 
 # OS / IDE
 .DS_Store
@@ -53,6 +63,7 @@ Thumbs.db
 
 # Logs / temp
 *.log
+logs/
 tmp/
 temp/
 .cache/

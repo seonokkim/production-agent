@@ -49,7 +49,7 @@ class MultimodalRagAgentFactory:
         media_type: str,
     ) -> Any:
         from app.agents.live_runner import _build_tools
-        from app.config import get_settings
+        from app.agents.model_provider import build_agent_model
 
         try:
             from agents import Agent  # type: ignore
@@ -59,11 +59,10 @@ class MultimodalRagAgentFactory:
                 "the [agents] extra"
             ) from exc
 
-        settings = get_settings()
         tools = _build_tools(db, project_id=project_id, media_type=media_type) if db else []
         return Agent(
             name="Multimodal RAG",
-            model=settings.openai_agent_model,
+            model=build_agent_model(),
             instructions=(
                 "You search approved production stills and video. "
                 "Always cite cite_key for media claims. "

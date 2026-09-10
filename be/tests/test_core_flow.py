@@ -166,4 +166,5 @@ def test_failed_generation_keeps_prior_approved():
         assert failed["status"] == "failed"
 
         prior = client.get(f"/api/v1/assets/{asset_id}").json()
-        assert prior["status"] == "ready"
+        assert prior["status"] == "approved"
+        assert prior["id"] == asset_id

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.models import Scene, ShotSpec
 from app.providers.llm import LLMProvider
 from app.schemas import ShotSpecBase, ShotSpecCreate, ShotSpecRead, ShotSpecUpdate
+from app.services.style_lock import shot_spec_motion_template, shot_spec_visual_template
 
 
 def _subjects_to_json(subjects: list[str]) -> str:
@@ -68,11 +69,22 @@ class ShotSpecService:
     def __init__(self, llm: LLMProvider | None = None) -> None:
         self.llm = llm or LLMProvider()
 
-    def suggest(self, db: Session, scene_id: int) -> ShotSpecRead:
+    def suggest(
+        self,
+        db: Session,
+        scene_id: int,
+        *,
+        llm_provider: str | None = None,
+        llm_model: str | None = None,
+    ) -> ShotSpecRead:
         scene = db.get(Scene, scene_id)
         if not scene:
             raise LookupError("Scene not found")
-        suggestion = validate_shot_spec(self.llm.suggest_shot_spec(scene.brief))
+        suggestion = validate_shot_spec(
+            self.llm.suggest_shot_spec(
+                scene.brief, llm_provider=llm_provider, llm_model=llm_model
+            )
+        )
         return self.create(
             db,
             scene_id,
@@ -138,10 +150,20 @@ class ShotSpecService:
 
     def _build_visual(self, data: ShotSpecBase) -> str:
         subjects = ", ".join(data.subjects)
-        return (
-            f"cinematic still, {data.location}, {data.time_of_day}, {subjects}, {data.action}, "
-            f"{data.shot_size}, {data.camera_angle}, {data.lighting}, {data.mood}, 16:9"
+        return shot_spec_visual_template(
+            location=data.location,
+            time_of_day=data.time_of_day,
+            subjects=subjects,
+            action=data.action,
+            shot_size=data.shot_size,
+            camera_angle=data.camera_angle,
+            lighting=data.lighting,
+            mood=data.mood,
         )
 
     def _build_motion(self, data: ShotSpecBase) -> str:
-        return f"{data.camera_motion}, {data.action}, {data.mood}"
+        return shot_spec_motion_template(
+            camera_motion=data.camera_motion,
+            action=data.action,
+            mood=data.mood,
+        )

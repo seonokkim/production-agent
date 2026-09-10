@@ -195,9 +195,9 @@ export function ProjectPage() {
             <Link to="/projects">Projects</Link>
           </>
         }
-        title={project.data.name}
-        description={project.data.description || undefined}
-        badge={<Badge variant="info">{project.data.status}</Badge>}
+        title={project.data?.name ?? "Project"}
+        description={project.data?.description || undefined}
+        badge={<Badge variant="info">{project.data?.status ?? "…"}</Badge>}
         actions={<CreateSceneDialog projectId={projectId} />}
       />
 

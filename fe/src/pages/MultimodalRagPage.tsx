@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/api/client";
+import { LlmProviderSelect, type LlmProviderId } from "@/components/LlmProviderSelect";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function MultimodalRagPage() {
   const [embeddingProvider, setEmbeddingProvider] = useState<
     "default" | "mock" | "marengo"
   >("default");
+  const [llmProvider, setLlmProvider] = useState<LlmProviderId>("openai");
   const [projectId, setProjectId] = useState<number | "all">("all");
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
@@ -69,6 +71,7 @@ export function MultimodalRagPage() {
 
   const catalog = useQuery({ queryKey: ["agents"], queryFn: api.listAgents });
   const projects = useQuery({ queryKey: ["projects"], queryFn: api.listProjects });
+  const llmOptions = useQuery({ queryKey: ["llm-options"], queryFn: api.llmOptions });
   const conversations = useQuery({
     queryKey: ["agent-conversations"],
     queryFn: api.listAgentConversations,
@@ -183,6 +186,7 @@ export function MultimodalRagPage() {
           conversation_id: conversationId,
           embedding_provider:
             embeddingProvider === "default" ? null : embeddingProvider,
+          agent_llm_provider: llmProvider,
         },
         {
           onStage: (stage) => {
@@ -352,6 +356,11 @@ export function MultimodalRagPage() {
             </Badge>
           </button>
         ))}
+        <LlmProviderSelect
+          value={llmProvider}
+          onChange={setLlmProvider}
+          options={llmOptions.data?.options}
+        />
         <Badge variant="success">Approved only</Badge>
       </div>
 

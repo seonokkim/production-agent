@@ -17,6 +17,11 @@ from app.providers import get_generation_provider
 from app.providers.base import GenerationProvider, GenerationRequest, ProviderStatus
 from app.schemas import AssetRead, GenerationAccepted, GenerationCreate, GenerationRead
 from app.services.shot_spec_service import _subjects_from_json
+from app.services.style_lock import (
+    compose_keyframe_prompt,
+    compose_motion_prompt,
+    default_negative_prompt,
+)
 from app.services.workflow_service import get_active_workflow, load_node_map, load_workflow_snapshot
 
 logger = logging.getLogger(__name__)
@@ -72,6 +77,9 @@ def _transition(job: GenerationJob, new_status: str) -> None:
 
 
 def asset_to_read(asset: Asset) -> AssetRead:
+    from app.storage import get_asset_storage
+
+    storage = get_asset_storage()
     return AssetRead(
         id=asset.id,
         generation_job_id=asset.generation_job_id,
@@ -84,7 +92,15 @@ def asset_to_read(asset: Asset) -> AssetRead:
         duration_seconds=asset.duration_seconds,
         status=asset.status,
         created_at=asset.created_at,
-        url=f"/storage/{asset.file_path}",
+        url=storage.public_url(asset.file_path),
+        original_filename=getattr(asset, "original_filename", None),
+        file_size=getattr(asset, "file_size", None),
+        source=getattr(asset, "source", None),
+        ingestion_status=getattr(asset, "ingestion_status", None),
+        extracted_text=getattr(asset, "extracted_text", None),
+        extracted_text_path=getattr(asset, "extracted_text_path", None),
+        metadata_json=getattr(asset, "metadata_json", None),
+        processed_at=getattr(asset, "processed_at", None),
     )
 
 
@@ -148,7 +164,11 @@ class GenerationService:
                 )
 
         prompt = shot.visual_prompt if payload.generation_type == "keyframe" else shot.motion_prompt
-        negative = "blurry, low quality, watermark, text overlay, deformed"
+        if payload.generation_type == "keyframe":
+            prompt = compose_keyframe_prompt(prompt)
+        else:
+            prompt = compose_motion_prompt(prompt)
+        negative = default_negative_prompt()
         seed = payload.seed if payload.seed is not None else random.randint(1, 2_147_483_647)
         duration = payload.duration_seconds if payload.generation_type == "image_to_video" else None
         settings = get_settings()

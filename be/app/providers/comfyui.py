@@ -35,8 +35,8 @@ class ComfyUIProvider(GenerationProvider):
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._client_id = f"production-agent-{uuid.uuid4().hex[:8]}"
         self._comfy_input_dir = Path(
-            getattr(settings, "comfyui_input_dir", "")
-            or "/home/work/.workspace/ComfyUI/input"
+            (settings.comfyui_input_dir or "").strip()
+            or str(Path(settings.asset_storage_path).resolve().parent / "comfy_runtime" / "input")
         )
         self._comfy_input_dir.mkdir(parents=True, exist_ok=True)
         self._asset_root = Path(settings.asset_storage_path)

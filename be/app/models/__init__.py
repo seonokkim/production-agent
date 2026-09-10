@@ -7,6 +7,7 @@ from app.models.agent_run import (
 )
 from app.models.asset import Asset
 from app.models.asset_embedding import AssetEmbedding
+from app.models.batch_run import BatchRun
 from app.models.generation_job import GenerationJob
 from app.models.project import Project
 from app.models.retrieval_event import RetrievalEvent
@@ -23,6 +24,7 @@ __all__ = [
     "AgentRunEvent",
     "Asset",
     "AssetEmbedding",
+    "BatchRun",
     "GenerationJob",
     "Project",
     "RetrievalEvent",
