@@ -71,14 +71,31 @@ Browse keyframes and videos from completed jobs. Detail views keep technical pat
 
 ### Generation workflows — keyframe still & short video
 
-SceneFlow generates media through two fixed ComfyUI workflows. **Keyframe** makes the still; **I2V** turns an approved keyframe into a short clip.
+SceneFlow generates media through two fixed ComfyUI workflows. **Keyframe** makes the image; **I2V** (image-to-video) turns an approved keyframe into a short clip.
 
 ![ComfyUI generation workflows — keyframe_v1 / i2v_v1](asset/workflow.png)
 
 | Job | Role | Workflow | Models |
 |---|---|---|---|
-| **Keyframe** | Keyframe image from shot spec | `comfy/workflows/keyframe_v1.json` | `sd_xl_base_1.0.safetensors` (SDXL checkpoint) |
-| **I2V** | Short video from approved keyframe | `comfy/workflows/i2v_v1.json` | `wan2.2_ti2v_5B_fp16.safetensors` + `umt5_xxl_fp8_e4m3fn_scaled` + `wan2.2_vae` |
+| **Keyframe** | Keyframe image from shot spec | `comfy/workflows/keyframe_v1.json` | `sd_xl_base_1.0.safetensors` |
+| **I2V** | Short video from approved keyframe | `comfy/workflows/i2v_v1.json` | `wan2.2_ti2v_5B_fp16.safetensors` · `umt5_xxl_fp8_e4m3fn_scaled.safetensors` · `wan2.2_vae.safetensors` |
+
+#### What each model does
+
+| File | Used for | Role |
+|---|---|---|
+| `sd_xl_base_1.0.safetensors` | Keyframe | **SDXL** image model — turns the shot-spec prompt into one photorealistic frame. A *checkpoint* is the full saved weights for that image model. |
+| `wan2.2_ti2v_5B_fp16.safetensors` | I2V | **Wan 2.2** video generator (TI2V = text+image → video). The main network that animates the keyframe into a short clip (~5B parameters; `fp16` = half-precision weights for GPU memory). |
+| `umt5_xxl_fp8_e4m3fn_scaled.safetensors` | I2V | **Text encoder** (UMT5-XXL) — converts the motion / scene prompt into numbers the video model can use. Not an image model; it only understands text. |
+| `wan2.2_vae.safetensors` | I2V | **VAE** (Variational Autoencoder) — compresses images/frames into a smaller internal form for generation, then decodes them back to visible pixels. Think “zip/unzip for pictures” so the big video model can run efficiently. |
+
+**Terms in brief:**
+
+- *I2V* — image-to-video
+- *checkpoint* — packaged model weights
+- *safetensors* — safe weight file format
+- *UNet* / diffusion backbone — the core “paint the next frame” network inside Wan
+- *fp8* / *fp16* — lower-precision number formats that save VRAM
 
 ## Stack
 
